@@ -1,5 +1,7 @@
 # voil.nvim
 
+[![test](https://github.com/mercenarioZ/voil.nvim/actions/workflows/test.yml/badge.svg)](https://github.com/mercenarioZ/voil.nvim/actions/workflows/test.yml)
+
 Version control status, in [oil.nvim](https://github.com/stevearc/oil.nvim) itself.
 
 voil adds one column to the oil listing with the state of each entry, from **jj**
