@@ -1,0 +1,184 @@
+*voil.txt*   Version control status for oil.nvim directory listings
+
+                          __      __  ___   __   __
+                              VOIL
+
+==============================================================================
+CONTENTS                                                     *voil-contents*
+
+    1. Introduction ................................ |voil-introduction|
+    2. Requirements ................................ |voil-requirements|
+    3. Setup ....................................... |voil-setup|
+    4. Configuration ............................... |voil-config|
+    5. Backends .................................... |voil-backends|
+    6. Api ......................................... |voil-api|
+    7. Highlights .................................. |voil-highlights|
+    8. Limitations ................................. |voil-limitations|
+
+==============================================================================
+1. INTRODUCTION                                         *voil-introduction*
+
+voil shows what changed in a directory inside the oil.nvim listing itself. Every
+entry gets one character in the column it registers:
+
+>text
+    /002 M sub/
+    /005 A added.txt
+    /006 - clean.txt
+    /001 M dirty.txt
+    /003 R renamed.txt
+<
+Statuses come from the version control system that owns the directory: jj or
+git out of the box. Directories with changes below them carry the most severe
+status of their children.
+
+The column is registered through oil's own column registry, so
+|oil-columns| options such as `align` work as usual.
+
+==============================================================================
+2. REQUIREMENTS                                         *voil-requirements*
+
+- Neovim >= 0.10 (uses |vim.system()|)
+- oil.nvim
+- git and/or jj in `$PATH`
+
+==============================================================================
+3. SETUP                                                     *voil-setup*
+
+Add the column name to the columns oil draws, and voil does the rest:
+
+>lua
+    require("oil").setup({
+      columns = { "icon", "voil", "mtime" },
+    })
+<
+Calling setup() is optional: the plugin registers the column with its defaults
+at startup. Call it when you want different options:
+
+>lua
+    require("voil").setup({
+      column = "vcs",
+      symbols = { M = "~", ["?"] = "!" },
+    })
+<
+==============================================================================
+4. CONFIGURATION                                             *voil-config*
+
+                                                            *voil-config-options*
+The defaults are: >lua
+    require("voil").setup({
+      -- name the column is registered under in oil
+      column = "voil",
+      -- tried in order, the first backend whose marker exists wins
+      backends = { "jj", "git" },
+      -- status code -> text drawn in the column; must not contain whitespace,
+      -- oil parses the column back out of the line when the buffer is written
+      symbols = {},
+      -- status code -> { group, base, plain }, see |voil-highlights|
+      highlight = { ... },
+      -- warn once when the underlying command fails
+      notify_on_error = true,
+      -- milliseconds before a directory whose command failed is retried
+      retry_ms = 5000,
+      -- refresh after writing a file below a listed directory
+      refresh_on_write = true,
+      -- refresh after oil applies file operations
+      refresh_on_mutation = true,
+    })
+<
+
+==============================================================================
+5. BACKENDS                                                  *voil-backends*
+
+A backend is a table:
+
+>lua
+    ---@class Voil.Backend
+    ---@field name string
+    ---@field cmd string[]  -- run with the directory as cwd
+    ---@field detect fun(dir: string): boolean
+    ---@field parse fun(stdout: string): Voil.Change[]
+<
+`parse` returns a list of `{ path, code }`. Paths are relative to the directory
+that was listed; paths outside it, and paths more than one level deep, are
+collapsed onto the entry that contains them by |voil-api| internally.
+
+Register your own before setup(): >lua
+    require("voil").register_backend({
+      name = "svn",
+      cmd = { "svn", "status", "." },
+      detect = function(dir)
+        return vim.fs.find(".svn", { upward = true, path = dir })[1] ~= nil
+      end,
+      parse = function(stdout)
+        local changes = {}
+        for _, line in ipairs(vim.split(stdout, "\n", { plain = true })) do
+          local code, path = line:match("^(%a)%s+(.+)$")
+          if code then
+            changes[#changes + 1] = { path = path, code = code }
+          end
+        end
+        return changes
+      end,
+    })
+<
+==============================================================================
+6. API                                                         *voil-api*
+
+voil.setup({opts})                                             *voil.setup()*
+    Configure the plugin. May be called more than once.
+
+voil.refresh({dir})                                           *voil.refresh()*
+    Refetch and redraw. Without an argument every directory that was listed
+    during this session is refetched.
+
+voil.get_status({dir})                                   *voil.get_status()*
+    Returns `{ [entry name] = code }` for a directory, or nil until the first
+    fetch of that directory finishes.
+
+voil.register_backend({backend})                   *voil.register_backend()*
+    Add a backend, see |voil-backends|.
+
+==============================================================================
+7. HIGHLIGHTS                                             *voil-highlights*
+
+Each status code has a group. The foreground is copied from a group the
+colorscheme already colors, because `link` cannot add attributes and the diff
+groups only carry a background:
+
+    code  group                  color copied from
+    M     VoilModified           DiagnosticWarn
+    A     VoilAdded              Added
+    D     VoilDeleted            Removed
+    R     VoilRenamed            Changed
+    C     VoilCopied             Changed
+    ?     VoilUntracked          DiagnosticHint
+    !     VoilIgnored            Comment (not bold)
+
+Override or add codes through the `highlight` option: >lua
+    require("voil").setup({
+      highlight = {
+        M = { group = "VoilModified", base = "DiffChange", plain = true },
+      },
+    })
+<
+Colors are re-derived whenever the colorscheme changes.
+
+==============================================================================
+8. LIMITATIONS                                           *voil-limitations*
+
+- Uses parts of oil that are not in its documented api: `oil.columns`,
+  `oil.constants` and `oil.view`. If a future oil release changes them, the
+  column stays empty and `:messages` shows why.
+- The column is read only, so it cannot be sorted by.
+- Only the local filesystem adapter is supported; remote schemes have no
+  working copy to inspect.
+- Rename detection is whatever the backend reports: jj summarises a rename as
+  one entry, git only when it notices the rename.
+
+==============================================================================
+9. LICENSE                                                   *voil-license*
+
+MIT, see the LICENSE file in the repository.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
