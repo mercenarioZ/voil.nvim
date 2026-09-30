@@ -72,6 +72,23 @@ if command -v jj >/dev/null 2>&1; then
   have_jj=1
 fi
 
+# same content as the colocated fixture, but without a .git directory: the case
+# proves that a git-only implementation cannot answer here
+init_jj_repo_plain() {
+  local repo="$1"
+  mkdir -p "$repo/sub"
+  # --no-colocate: a user config can turn colocation on by default
+  (cd "$repo" && jj git init --no-colocate >/dev/null 2>&1)
+  printf 'v1\n' >"$repo/dirty.txt"
+  printf 'old\n' >"$repo/old.txt"
+  printf 'keep\n' >"$repo/keep.txt"
+  printf 'v1\n' >"$repo/sub/change.txt"
+  (cd "$repo" && jj commit -m init >/dev/null 2>&1)
+  printf 'v2\n' >"$repo/dirty.txt"
+  printf 'new\n' >"$repo/added.txt"
+  mv "$repo/old.txt" "$repo/renamed.txt"
+}
+
 failures=0
 run() {
   local case="$1" bootstrap="${2:-}"
@@ -82,8 +99,10 @@ run() {
   if [ "$have_jj" = 1 ]; then
     export FIXTURE_JJ="$work/$case/jj"
     init_jj_repo "$FIXTURE_JJ"
+    export FIXTURE_JJ_PLAIN="$work/$case/jj-plain"
+    init_jj_repo_plain "$FIXTURE_JJ_PLAIN"
   else
-    unset FIXTURE_JJ
+    unset FIXTURE_JJ FIXTURE_JJ_PLAIN
   fi
 
   if out="$(CASE="$case" VOIL_BOOTSTRAP="$bootstrap" nvim --headless -u "$root/tests/minimal_init.lua" \
@@ -107,6 +126,8 @@ if [ "$have_jj" = 1 ]; then
   run jj
   run subdir
   run write
+  run noncolocated
+  run gitfirst "$root/tests/bootstrap-git-first.lua"
 else
   echo "skip jj cases: jj is not installed"
 fi

@@ -8,13 +8,7 @@ voil adds one column to the oil listing with the state of each entry, from **jj*
 or **git**. A directory whose contents changed carries the most severe status of
 its children.
 
-```
-  /002 M sub/
-  /005 A added.txt
-  /006 - clean.txt
-  /001 M dirty.txt
-  /003 R renamed.txt
-```
+![a directory listing with the voil column](assets/demo.png)
 
 `M` modified, `A` added, `D` deleted, `R` renamed, `C` copied, `?` untracked,
 `!` ignored, `-` clean.
@@ -172,7 +166,24 @@ VERBOSE=1 bash tests/run.sh
 ```
 
 Every case gets a throwaway git and jj repository, and the jj cases are skipped
-when jj is not installed.
+when jj is not installed. Besides the happy paths, the suite pins the parts that
+make a version control aware column tricky:
+
+- `noncolocated`: a jj repo without `.git`, where a git-only implementation
+  cannot answer at all
+- `gitfirst`: a colocated repo whose rename jj has not snapshotted yet, where
+  git reports delete plus untracked and jj reports one rename, so the backend
+  order decides the answer
+- `write`: a write below a listed directory refreshes it
+- `failure`: a broken `$PATH` warns once, keeps the listing alive, and recovers
+- `config`: a renamed column with custom symbols still round-trips through oil's
+  parser when the buffer is written
+
+## Demo image
+
+`assets/demo.png` is a real capture: `scripts/capture.sh` builds a fixture,
+starts `scripts/demo.lua` in a throwaway tmux session with an RGB terminal, and
+prints what the terminal shows.
 
 ## Limitations
 

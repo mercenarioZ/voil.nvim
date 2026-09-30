@@ -151,6 +151,25 @@ M.highlight = function()
   assert(after.fg, "colors were lost after a colorscheme switch")
 end
 
+M.noncolocated = function()
+  local repo = assert(vim.env.FIXTURE_JJ_PLAIN, "FIXTURE_JJ_PLAIN is not set")
+  -- no .git anywhere: only a jj backend can answer here
+  assert(vim.fn.isdirectory(repo .. "/.git") == 0, "fixture must not be colocated")
+  assert(voil.detect_backend(repo .. "/").name == "jj", "jj should own this directory")
+  open(repo)
+  expect({ ["dirty.txt"] = "M", ["added.txt"] = "A", ["renamed.txt"] = "R", ["keep.txt"] = "-" })
+end
+
+M.gitfirst = function()
+  -- a filesystem rename that jj has not snapshotted yet: git reports it as
+  -- delete + untracked, jj reports one rename. The backend order picks which
+  -- answer the column shows.
+  assert(voil.config.backends[1] == "git", vim.inspect(voil.config.backends))
+  assert(voil.detect_backend(repo_jj .. "/").name == "git", "git should win the detection")
+  open(repo_jj)
+  expect({ ["renamed.txt"] = "?", ["added.txt"] = "?", ["dirty.txt"] = "M" })
+end
+
 local case = assert(vim.env.CASE, "CASE is not set")
 local fn = M[case] or error("unknown case: " .. case)
 
