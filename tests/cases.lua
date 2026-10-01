@@ -62,6 +62,26 @@ local function expect(want)
   end
 end
 
+local function assert_filename_group(name, group)
+  local bufnr = live()
+  local namespace = vim.api.nvim_get_namespaces().Oil
+  assert(namespace, "Oil highlight namespace is missing")
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
+  for row, line in ipairs(lines) do
+    local start = line:find(name, 1, true)
+    if start then
+      for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(bufnr, namespace, { row - 1, 0 }, { row - 1, -1 }, { details = true })) do
+        local details = mark[4]
+        if details and details.hl_group == group and mark[3] <= start - 1 and details.end_col >= start - 1 then
+          return
+        end
+      end
+    end
+  end
+  error(("%s does not use %s"):format(name, group))
+end
+
+
 local function write_file(path)
   vim.cmd("vsplit " .. vim.fn.fnameescape(path))
   vim.cmd("normal! Gox")
@@ -149,6 +169,13 @@ M.highlight = function()
   vim.cmd.colorscheme("default")
   local after = vim.api.nvim_get_hl(0, { name = "VoilModified", link = false })
   assert(after.fg, "colors were lost after a colorscheme switch")
+end
+
+M.filename_highlight = function()
+  open(repo_git)
+  expect({ ["dirty.txt"] = "M", ["untracked.txt"] = "?" })
+  assert_filename_group("dirty.txt", "VoilModified")
+  assert_filename_group("untracked.txt", "VoilUntracked")
 end
 
 M.noncolocated = function()

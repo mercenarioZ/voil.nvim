@@ -27,6 +27,7 @@ local M = {}
 ---@field backends string[] Backend names in detection order
 ---@field symbols table<string, string> Status code to displayed text
 ---@field highlight table<string, Voil.Highlight>
+---@field highlight_filename boolean Apply status highlights to entry names
 ---@field notify_on_error boolean Warn when the underlying command fails
 ---@field retry_ms integer Backoff before a failed directory is fetched again
 ---@field refresh_on_write boolean Refresh after writing a file below a listed directory
@@ -46,6 +47,7 @@ local default_config = {
     ["?"] = { group = "VoilUntracked", base = "DiagnosticHint" },
     ["!"] = { group = "VoilIgnored", base = "Comment", plain = true },
   },
+  highlight_filename = true,
   notify_on_error = true,
   retry_ms = 5000,
   refresh_on_write = true,
@@ -173,6 +175,43 @@ M.refresh = function(dir)
   M.render()
 end
 
+local filename_highlight_fallback
+
+local function get_status_group(name, bufnr)
+  local dir = oil.get_current_dir(bufnr)
+  local status = dir and cache[dir]
+  local code = status and status[name]
+  local spec = code and M.config.highlight[code]
+  return spec and spec.group
+end
+
+local function filename_highlight(entry, is_hidden, is_link_target, is_link_orphan, bufnr)
+  local group = get_status_group(entry.name, bufnr)
+  if group then
+    return group
+  end
+  if filename_highlight_fallback then
+    return filename_highlight_fallback(entry, is_hidden, is_link_target, is_link_orphan, bufnr)
+  end
+end
+
+local function install_filename_highlight()
+  local view_options = require("oil.config").view_options
+  if not view_options then
+    return
+  end
+  if not M.config.highlight_filename then
+    if view_options.highlight_filename == filename_highlight then
+      view_options.highlight_filename = filename_highlight_fallback
+    end
+    return
+  end
+  if view_options.highlight_filename ~= filename_highlight then
+    filename_highlight_fallback = view_options.highlight_filename
+    view_options.highlight_filename = filename_highlight
+  end
+end
+
 ---@param opts nil|Voil.Config
 M.setup = function(opts)
   vim.g.voil_setup = true
@@ -189,6 +228,7 @@ M.setup = function(opts)
   end
 
   highlight.define(M.config.highlight)
+  install_filename_highlight()
 
   -- a column render must be synchronous, so it reads this cache and the fetch
   -- that fills it redraws the buffer once the answer lands
@@ -237,6 +277,7 @@ M.setup = function(opts)
     group = augroup,
     pattern = "OilEnter",
     callback = function(args)
+      install_filename_highlight()
       local dir = oil.get_current_dir(args.data.buf)
       if dir then
         M.load(dir, true)

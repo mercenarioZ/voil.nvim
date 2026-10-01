@@ -122,6 +122,7 @@ run git
 run failure
 run config "$root/tests/bootstrap-config.lua"
 run highlight
+run filename_highlight
 if [ "$have_jj" = 1 ]; then
   run jj
   run subdir
