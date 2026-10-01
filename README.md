@@ -86,6 +86,8 @@ require("voil").setup({
     ["?"] = { group = "VoilUntracked", base = "DiagnosticHint" },
     ["!"] = { group = "VoilIgnored", base = "Comment", plain = true },
   },
+  -- apply each status highlight to the entry name too
+  highlight_filename = true,
   -- warn once per failure spell when the command fails
   notify_on_error = true,
   -- milliseconds before a directory whose command failed is fetched again
@@ -102,6 +104,9 @@ already colors. `link` cannot add attributes, and the diff groups
 (`DiffAdd`/`DiffChange`/`DiffDelete`) only carry a background, which makes a one
 character column invisible on a normal listing line. Colors are re-derived on
 `ColorScheme`.
+
+By default, an entry name uses the same `Voil*` highlight group as its status
+column. Set `highlight_filename = false` to keep oil's normal filename colors.
 
 ## Backends
 

@@ -5,7 +5,12 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the major
 version is 0, the plugin is still allowed to change its defaults.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-01
+
+### Added
+
+- status highlights are applied to entry names by default; set
+  `highlight_filename = false` to keep oil's filename colors
 
 ## [0.1.1] - 2026-09-30
 
@@ -36,6 +41,7 @@ Documentation and test coverage only: no change to what the plugin runs.
 - highlights derived from the colorscheme and re-derived on `ColorScheme`
 - headless test suite with git and jj fixtures, running in CI
 
-[Unreleased]: https://github.com/mercenarioZ/voil.nvim/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/mercenarioZ/voil.nvim/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mercenarioZ/voil.nvim/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mercenarioZ/voil.nvim/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mercenarioZ/voil.nvim/releases/tag/v0.1.0

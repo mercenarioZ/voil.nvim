@@ -76,6 +76,8 @@ The defaults are: >lua
       symbols = {},
       -- status code -> { group, base, plain }, see |voil-highlights|
       highlight = { ... },
+      -- apply each status highlight to the entry name too
+      highlight_filename = true,
       -- warn once when the underlying command fails
       notify_on_error = true,
       -- milliseconds before a directory whose command failed is retried
@@ -163,6 +165,9 @@ Override or add codes through the `highlight` option: >lua
     })
 <
 Colors are re-derived whenever the colorscheme changes.
+
+By default, an entry name uses the same `Voil*` highlight group as its status
+column. Set `highlight_filename = false` to keep oil's normal filename colors.
 
 ==============================================================================
 8. LIMITATIONS                                           *voil-limitations*
